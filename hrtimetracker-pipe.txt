@@ -1,0 +1,57 @@
+pipeline {
+  agent {
+    label {
+      label 'master'
+    }
+  }
+
+  stages {
+    stage('Checkout source code') {
+        steps {
+          checkout([$class: 'GitSCM',
+              branches: [
+                [name:'*/master']],
+                  extensions: [
+                    [$class: 'CleanBeforeCheckout']
+                  ],
+                  submoduleCfg: [],
+                  userRemoteConfigs: [
+                    [credentialsId: 'd34532a3-5ce4-4ddc-8ab8-d417af377e38', url:'https://git.chetu.com/subhashs3/hrtimetracker01.git']
+                  ]
+                ])
+
+            }
+          }
+    stage('Image Build') {
+        steps {
+         
+          script {
+            bat '''
+                    docker build -t subhash .
+                    docker run -it --name SubhashTime -p 4456:80 -d subhash
+                '''
+            
+              }
+            }
+        post {
+    success {
+        mail to: "subhashsingh95@gmail.com",
+                subject: "SUCCESS: $JOB_NAME",
+                body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}"
+    }
+
+    failure {
+        mail to: "subhashsingh95@gmail.com",
+                subject: "FAILURE: $JOB_NAME",
+                body: "Job Result: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info : ${env.BUILD_URL}"
+    }
+
+    always {
+        cleanWs(
+                cleanWhenFailure: false,
+                cleanWhenUnstable: false
+        )
+    }
+}
+     }   }
+}
